@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ClusterIdentifier:
+    Type: String
+    Description: "Unique identifier for the Redshift cluster"
+  MasterUsername:
+    Type: String
+    Description: "Master user name for the Redshift cluster"
+  MasterUserPassword:
+    Type: String
+    Description: "Master user password for the Redshift cluster"
+    NoEcho: true
+  BucketName:
+    Type: String
+    Description: "Name of the S3 bucket for Redshift COPY commands"
+
+Resources:
+  RedshiftClusterRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "RedshiftClusterRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "redshift.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "RedshiftS3AccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:Get*"
+                  - "s3:List*"
+                  - "s3:PutObject" # Allow PutObject for writing to S3
+                Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+
+  RedshiftCluster:
+    Type: "AWS::Redshift::Cluster"
+    Properties:
+      ClusterType: "single-node"
+      NodeType: "dc2.large"
+      DBName: "testing" # Database name set to "testing"
+      MasterUsername: !Ref "MasterUsername"
+      MasterUserPassword: !Ref "MasterUserPassword"
+      ClusterIdentifier: !Ref "ClusterIdentifier"
+      PubliclyAccessible: true
+      IamRoles:
+        - !GetAtt "RedshiftClusterRole.Arn"
+
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref "BucketName"
+
+Outputs:
+  ClusterEndpoint:
+    Description: "Endpoint of the Redshift cluster"
+    Value: !GetAtt "RedshiftCluster.Endpoint.Address"
+  BucketArn:
+    Description: "ARN of the S3 bucket"
+    Value: !GetAtt "S3Bucket.Arn"
+  RedshiftClusterRoleArn:
+    Description: "ARN of the IAM role associated with the Redshift cluster"
+    Value: !GetAtt "RedshiftClusterRole.Arn"
