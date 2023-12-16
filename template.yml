@@ -38,6 +38,8 @@ Resources:
                   - "s3:List*"
                   - "s3:PutObject" # Allow PutObject for writing to S3
                 Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonRedshiftAllCommandsFullAccess"
 
   RedshiftCluster:
     Type: "AWS::Redshift::Cluster"
@@ -47,6 +49,7 @@ Resources:
       DBName: "testing" # Database name set to "testing"
       MasterUsername: !Ref "MasterUsername"
       MasterUserPassword: !Ref "MasterUserPassword"
+      MasterUserARN: !GetAtt "RedshiftClusterRole.Arn"
       ClusterIdentifier: !Ref "ClusterIdentifier"
       PubliclyAccessible: true
       IamRoles:
